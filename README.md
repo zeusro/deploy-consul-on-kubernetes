@@ -174,7 +174,12 @@ kubectl port-forward consul-0 8500:8500
 2. 通过Ingress暴露外网访问，我们配置了一个consul.xxxx.cn的域名，暴露到了外网。这种模式，外网可以无限制进行consul集群web管理界面访问，所以建议在开发或者测试环境使用，不要在生产环境使用该模式。
 
 
- 
+## 其他consul命令
+
+```
+consul info | grep state
+consul leave
+```
 
 ![Image of Consul UI](images/consul-ui.png)
 
@@ -184,3 +189,10 @@ kubectl port-forward consul-0 8500:8500
 ```
 bash cleanup
 ```
+
+参考链接:
+1. [在kubernetes上部署consul集群](https://www.kubernetes.org.cn/4435.html)
+2. [deploy-consul-on-kubernetes](https://github.com/nicklv/deploy-consul-on-kubernetes)
+3. [consul分布式服务注册和发现](http://blog.51cto.com/tianshili/1758566)
+
+
