@@ -24,13 +24,7 @@
 Clone this repo:
 
 ```
-git clone https://github.com/nicklv/consul_cluster_on_kubernetes.git
-```
-
-进入到 `consul-on-kubernetes` 目录:
-
-```
-cd consul-on-kubernetes
+git clone https://github.com/zeusro/consul_cluster_on_kubernetes.git
 ```
 
 ### 生成 TLS 证书
@@ -38,18 +32,18 @@ cd consul-on-kubernetes
 
 Consul集群中成员之间的RPC通信使用TLS进行加密。通过一下命令初始化CA证书：
 ```
-cfssl gencert -initca ca/ca-csr.json | cfssljson -bare ca
+cfssl gencert -initca 001ca/ca-csr.json | cfssljson -bare ca
 ```
 
 使用以下命令创建 TLS 证书 和 私有密钥:
 
 ```
 cfssl gencert \
-  -ca=ca.pem \
-  -ca-key=ca-key.pem \
-  -config=ca/ca-config.json \
+  -ca=001ca/ca.pem \
+  -ca-key=001ca/ca-key.pem \
+  -config=001ca/ca-config.json \
   -profile=default \
-  ca/consul-csr.json | cfssljson -bare consul
+  001ca/consul-csr.json | cfssljson -bare consul
 ```
 
 执行完以上命令之后，在当前目录你应该看到以下证书文件:
@@ -77,20 +71,25 @@ Consul集群将通过CLI标志、TLS证书和配置文件来完成配置，这�
 ```
 kubectl create secret generic consul \
   --from-literal="gossip-encryption-key=${GOSSIP_ENCRYPTION_KEY}" \
-  --from-file=ca.pem \
-  --from-file=consul.pem \
-  --from-file=consul-key.pem
+  --from-file=001ca/ca.pem \
+  --from-file=001ca/consul.pem \
+  --from-file=001ca/consul-key.pem
 ```
 
 将Consul集群使用的配置文件存储在kubernetes的 ConfigMap中:
 
 ```
-kubectl create configmap consul --from-file=configs/server.json
+kubectl create configmap consul --from-file=002configs/server.json 
 ```
 ### 在创建Consul service和statefulSet之前，先创建Consul集群使用到的pv(persistVolume)持久化存储卷和pvc(persistVolumeClaim)持久化存储卷声明
+
 ```
 kubectl create -f pvc/pvc.yaml 
 ```
+
+阿里云可以使用动态nas数据卷
+ 
+
 ### 通过kubectl 命令创建Consul 集群服务
 
 通过创建一个service来暴露Consul 集群功能：
@@ -116,6 +115,20 @@ NAME       READY     STATUS    RESTARTS   AGE
 consul-0   1/1       Running   0          50s
 consul-1   1/1       Running   0          29s
 consul-2   1/1       Running   0          15s
+```
+
+- 备注
+一开始创建之后,hostname有问题.
+
+```
+2018/09/14 07:56:44 [WARN] memberlist: Failed to resolve consul-0.consul.xxx.svc.cluster.local: lookup consul-0.consul.17zwd.svc.cluster.local on 172.30.0.10:53: no such host
+2018/09/14 07:56:44 [WARN] memberlist: Failed to resolve consul-1.consul.xxx.svc.cluster.local: lookup consul-0.consul.17zwd.svc.cluster.local on 172.30.0.10:53: no such host
+```
+导致无法选举,然后我用exec进入了`consul-0`的pod,手动加入节点,然后重启,就好了.
+
+```
+consul join consul-1.consul.xxx.svc.cluster.local
+consul join consul-2.consul.xxx.svc.cluster.local
 ```
 
 ### 核实节点状态
